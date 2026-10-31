@@ -49,7 +49,7 @@ Every clip below was made by an agent with this skill from a short request. For 
 The exported MP4 (<code>out/editor-&lt;task-id&gt;.mp4</code> from the workspace) + <code>out/poster.png</code><br/>
 <code>brief.md</code>: a reusable structured prompt<br/>
 <code>index.html</code> / <code>timeline.js</code> / <code>score.mjs</code>: editable source<br/>
-<code>sh build.sh</code>: rebuild everything, or one segment<br/>
+<code>node build.mjs</code>: rebuild everything, or one segment<br/>
 <code>qa/</code>: contact sheets, phone-size check, per-shot motion, text-framing marks, waveform and spectrum<br/>
 Technical checks (all PASS) and an honest review log
 </sub></td>
@@ -174,7 +174,7 @@ skills/motion-showreel/
 │   ├── brief-template.md    the structured prompt every piece starts from
 │   └── review.md            technical checks, review sheet, independent review, common problems, delivery checklist
 ├── scripts/
-│   ├── setup.sh · check-env.mjs · scaffold.sh
+│   ├── setup.mjs · check-env.mjs · scaffold.mjs
 │   ├── render.mjs           stills, sheets, three directions, poster, determinism, text framing, proxy, master
 │   ├── audio.mjs            build · check · beats · samples · mux
 │   ├── narration.mjs        tts · import · mix · check
@@ -185,7 +185,7 @@ skills/motion-showreel/
 │   ├── inspect.mjs          qa · sheet · phone · strip · frames · motion · loop · grid · heat
 │   ├── lib/                 synth, Tone.js renderer, FFT, browser, project, frame analysis, text hook
 │   └── test/                regression tests (npm test)
-└── assets/starter/          page, motion/timeline/narration helpers, preview controls, scores and build.sh
+└── └── assets/starter/      page, motion/timeline/narration helpers, preview controls, scores and build.mjs
 ```
 
 ---
@@ -195,7 +195,7 @@ skills/motion-showreel/
 Install the skill (see the [collection README](../../README.md#install)), then run the one-time setup from the skill folder:
 
 ```bash
-sh scripts/setup.sh        # Playwright + Chromium + Tone.js, then an environment check
+node scripts/setup.mjs        # Playwright + Chromium + Tone.js, then an environment check
 ```
 
 Requirements: **Node 18+** and **ffmpeg** on `PATH`. The setup script never installs system software for you.
@@ -213,7 +213,7 @@ The agent first confirms the completed requirements, then scaffolds `<slug>/` an
 
 ```bash
 node scripts/editor.mjs <slug> --size 1920x1080 --fps 30   # default: review in the workspace before Export
-sh <slug>/build.sh                                   # approved rebuild; does not apply workspace audio edits
+node <slug>/build.mjs                                   # approved rebuild; does not apply workspace audio edits
 node scripts/preview.mjs <slug> --size 1920x1080 --fps 30   # lightweight debugging
 node scripts/render.mjs <slug> --start 6 --duration 3 --out out/seg.mp4   # re-render one segment
 node scripts/build-long.mjs <slug>/chapters.json       # persistent chapter rebuild

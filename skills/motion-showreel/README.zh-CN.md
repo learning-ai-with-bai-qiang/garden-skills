@@ -49,7 +49,7 @@
 实际导出的 MP4（工作区版为 <code>out/editor-&lt;task-id&gt;.mp4</code>）+ <code>out/poster.png</code><br/>
 <code>brief.md</code>：可以复用的结构化提示词<br/>
 <code>index.html</code> / <code>timeline.js</code> / <code>score.mjs</code>：可编辑的源码<br/>
-<code>sh build.sh</code>：整片重建，也可以只重渲一段<br/>
+<code>node build.mjs</code>：整片重建，也可以只重渲一段<br/>
 <code>qa/</code>：抽帧图、手机尺寸检查、按镜头的运动报告、文字框景标记图、波形图和频谱图<br/>
 技术检查结果（全部 PASS）+ 如实记录的审片记录
 </sub></td>
@@ -174,7 +174,7 @@ skills/motion-showreel/
 │   ├── brief-template.md    每支片子的结构化提示词模板
 │   └── review.md            技术检查、审片表、独立审片、常见问题、交付清单
 ├── scripts/
-│   ├── setup.sh · check-env.mjs · scaffold.sh
+│   ├── setup.mjs · check-env.mjs · scaffold.mjs
 │   ├── render.mjs           静帧、拼图、三方向、封面、确定性、文字框景、小样、正片
 │   ├── audio.mjs            build · check · beats · samples · mux
 │   ├── narration.mjs        tts · import · mix · check
@@ -185,7 +185,7 @@ skills/motion-showreel/
 │   ├── inspect.mjs          qa · sheet · phone · strip · frames · motion · loop · grid · heat
 │   ├── lib/                 合成器、Tone.js 渲染、FFT、浏览器、项目工具、帧分析、文字钩子
 │   └── test/                回归测试（npm test）
-└── assets/starter/          页面、motion/timeline/narration 工具、预览控件、配乐与 build.sh
+└── assets/starter/          页面、motion/timeline/narration 工具、预览控件、配乐与 build.mjs
 ```
 
 ---
@@ -195,7 +195,7 @@ skills/motion-showreel/
 先安装 Skill（见[集合首页](../../README.zh-CN.md#安装)），然后在 Skill 目录里跑一次初始化：
 
 ```bash
-sh scripts/setup.sh        # 安装 Playwright + Chromium + Tone.js，再做环境检查
+node scripts/setup.mjs        # 安装 Playwright + Chromium + Tone.js，再做环境检查
 ```
 
 依赖：**Node 18+** 和 **ffmpeg**（需要在 `PATH` 里）。初始化脚本不会替你安装系统软件。
@@ -213,7 +213,7 @@ Agent 会先补问缺失项并停下来确认，再建好 `<slug>/`、给你看�
 
 ```bash
 node scripts/editor.mjs <slug> --size 1920x1080 --fps 30   # 默认先打开工作区，预览通过后点击导出
-sh <slug>/build.sh                                   # 用户确认后重建原版，不自动读取工作区音轨编辑
+node <slug>/build.mjs                                   # 用户确认后重建原版，不自动读取工作区音轨编辑
 node scripts/preview.mjs <slug> --size 1920x1080 --fps 30   # 轻量调试预览
 node scripts/render.mjs <slug> --start 6 --duration 3 --out out/seg.mp4   # 只重渲一段
 node scripts/build-long.mjs <slug>/chapters.json       # 长片按章构建，再次运行复用有效缓存
