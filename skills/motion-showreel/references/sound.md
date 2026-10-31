@@ -19,9 +19,9 @@
 | 外部曲子 | 用户的音频文件 | `S.load()` | 真实制作的音乐（用户自己的、授权的、AI 音乐服务生成的） | 授权要用户负责；只能卡它的拍 |
 | 无声 | — | — | 循环动图、要放进别的片子里的素材 | — |
 
-两档可以叠：先 `audio.mjs build score.tone.js --raw --out audio/tone.wav` 得到一层没做母带的音乐，再在 `score.mjs` 里 `S.load('audio/tone.wav')` 放进一条 bus，叠上第 1 档的音效，最后统一做母带。`scaffold.sh --audio layer` 会给出这样一份 `score.mjs`（第一行就加载 `audio/tone.wav`，后面只写音效），`build.sh` 的 `AUDIO=layer` 按这个顺序自动构建；`score.mjs` 里没有引用 `tone.wav` 时 build 会报错，免得 Tone 层渲出来却没混进去。
+两档可以叠：先 `audio.mjs build score.tone.js --raw --out audio/tone.wav` 得到一层没做母带的音乐，再在 `score.mjs` 里 `S.load('audio/tone.wav')` 放进一条 bus，叠上第 1 档的音效，最后统一做母带。`scaffold.mjs --audio layer` 会给出这样一份 `score.mjs`（第一行就加载 `audio/tone.wav`，后面只写音效），`build.mjs` 的 `AUDIO=layer` 按这个顺序自动构建；`score.mjs` 里没有引用 `tone.wav` 时 build 会报错，免得 Tone 层渲出来却没混进去。
 
-`build.sh` 只构建 `AUDIO=` 指定的那份 score（synth / tone / layer / none），另一份文件存在时会提示它被忽略，不会悄悄换成别的配乐。新增 `AUDIO=file AUDIO_FILE=audio/final.wav` 使用独立轨混好的最终音频，不重复合成；文件时长必须与 `timeline.js` 匹配，冲突先确认，不能自动截断口播。
+`build.mjs` 只构建 `AUDIO=` 指定的那份 score（synth / tone / layer / none），另一份文件存在时会提示它被忽略，不会悄悄换成别的配乐。新增 `AUDIO=file AUDIO_FILE=audio/final.wav` 使用独立轨混好的最终音频，不重复合成；文件时长必须与 `timeline.js` 匹配，冲突先确认，不能自动截断口播。
 
 **怎么选**：看所选风格文件里的「声音调色板」。电子、界面、复古、抽象、大多数手作和玩具风格用第 1 档就够了；需要真实钢琴、弦乐和大空间的电影感、高端产品，用第 2 档或两档叠用。
 
@@ -115,7 +115,7 @@ export default async function score(Tone, kit) {
 }
 ```
 
-- **构建**：`node <skill>/scripts/audio.mjs build <slug>/score.tone.js`，输出 −14 LUFS 的 WAV（`--raw` 跳过母带）。`scaffold.sh <slug> --audio tone` 会拷贝一份完整示例 `score.tone.js`，并把 `build.sh` 设成 `AUDIO=tone`；两档叠用时选 `--audio layer`。
+- **构建**：`node <skill>/scripts/audio.mjs build <slug>/score.tone.js`，输出 −14 LUFS 的 WAV（`--raw` 跳过母带）。`scaffold.mjs <slug> --audio tone` 会拷贝一份完整示例 `score.tone.js`，并把 `build.mjs` 设成 `AUDIO=tone`；两档叠用时选 `--audio layer`。
 - **kit**：`DUR`、`transport`、`loaded()`、`baseUrl(pack)`、`sample(pack, file)`、`salamander()`（Salamander 钢琴的 `Sampler` urls 表）。
 - **采样**：`node <skill>/scripts/audio.mjs samples` 列出可下载的包；`samples salamander` 下载 Salamander Grand Piano（CC BY 3.0，交付时要署名）。其他 CC0 / 有授权的采样可以放进 `<slug>/samples/<名字>/`，在页面里用 `/samples/<名字>/文件` 引用。不要使用来源和授权不明的采样。
 - **常用部件**：`Sampler`（采样乐器）、`PolySynth(FMSynth | AMSynth | Synth)`、`MonoSynth`（贝斯）、`MembraneSynth`（底鼓）、`MetalSynth`（镲）、`NoiseSynth`；效果 `Reverb`（卷积）、`FeedbackDelay`、`PingPongDelay`、`Chorus`、`Phaser`、`Distortion`、`BitCrusher`、`Filter`、`AutoFilter`、`Compressor`、`Limiter`。

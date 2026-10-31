@@ -54,11 +54,11 @@ description: 用代码制作图形、文字或界面动画视频，输出 MP4 �
 8 交付
 ```
 
-工作目录：在用户当前目录下建 `<slug>/`，所有文件都放在里面：`brief.md`、`index.html`、`motion.js`、`timeline.js`、`score.mjs` 或 `score.tone.js`（按 scaffold 的 `--audio` 选择）、`build.sh`、`fonts/`、`assets/`、`audio/`、`qa/`、`out/`。
+工作目录：在用户当前目录下建 `<slug>/`，所有文件都放在里面：`brief.md`、`index.html`、`motion.js`、`timeline.js`、`score.mjs` 或 `score.tone.js`（按 scaffold 的 `--audio` 选择）、`build.mjs`、`fonts/`、`assets/`、`audio/`、`qa/`、`out/`。
 
 ### 第 0 步：环境
 
-第一次使用时运行 `sh <skill>/scripts/setup.sh`：它会安装 Playwright 和 Chromium，再跑 `check-env.mjs`。需要 Node 18+ 和 ffmpeg；缺了就告诉用户怎么装，不要替用户装系统软件。工具自带测试：`cd <skill>/scripts && npm test`。
+第一次使用时运行 `node <skill>/scripts/setup.mjs`：它会安装 Playwright 和 Chromium，再跑 `check-env.mjs`。需要 Node 18+ 和 ffmpeg；缺了就告诉用户怎么装，不要替用户装系统软件。工具自带测试：`cd <skill>/scripts && npm test`。
 
 ### 第 1 步：需求确认（停下来等用户）
 
@@ -125,7 +125,7 @@ Reel Read:
 
 ### 第 3 步：风格帧（第二次停下来等用户）
 
-建项目：`sh <skill>/scripts/scaffold.sh <slug> [--audio synth|tone|layer|file|none]`（synth = 第 1 档合成；只拷贝选中的那份 score，`file` 使用已准备好的最终音轨）。脚手架的引擎默认值只用于技术初始化，不能代替需求确认。starter 只用来验证管线能跑通，画面和文案都要换掉。
+建项目：`node <skill>/scripts/scaffold.mjs <slug> [--audio synth|tone|layer|file|none]`（synth = 第 1 档合成；只拷贝选中的那份 score，`file` 使用已准备好的最终音轨）。脚手架的引擎默认值只用于技术初始化，不能代替需求确认。starter 只用来验证管线能跑通，画面和文案都要换掉。
 
 **A. 用户已经定了风格**（或者给了明确的参考）：
 以下命令中的秒数只是示例，实际取本片开场、记忆点与结尾的有效时间；短片和长片都不要照抄 14.5 秒。
@@ -154,7 +154,7 @@ Reel Read:
 2. 逐个镜头做。用户要看制作过程时，每镜自查通过即发布该镜头的独立可播放成果（`progress.mjs --stage scenes --shot <id> --total <镜头总数> --publish <该镜预览目录>`），然后再做下一镜；不把所有镜头写完后一次补成 3/3，也不等全片素材齐全才给第一个预览。每个镜头渲开头、中段、结尾 3 张静帧；关键状态变化和镜头接缝另看连续小样，检查主体是否凭空重置、动作速度是否突变、镜头是否中断。静帧好看不能替代运动检查，快速动作用 `inspect.mjs strip` 看连续帧。
 3. 跑确定性检查 `render.mjs <slug> --determinism`，不通过就先修。
 4. 用网页预览检查节奏与连续动作，不默认渲染低清代理或 MP4 小样；静帧和确定性检查照常进行。确实需要离线片段时说明原因，在用户同意后只渲必要范围。
-5. 按 brief 配好 `FPS`、`SIZE`、`AUDIO`、`LOOP`，完成下方声音准备后进入第 6 步。此时不执行 `build.sh`、视频模式的 `render.mjs` 或 `build-long.mjs`。
+5. 按 brief 配好 `FPS`、`SIZE`、`AUDIO`、`LOOP`，完成下方声音准备后进入第 6 步。此时不执行 `build.mjs`、视频模式的 `render.mjs` 或 `build-long.mjs`。
 
 **硬规则**：
 - 画面只由 t 决定：不用 `Math.random`、`Date.now`、rAF、定时器、CSS 动画，帧和帧之间不保存状态。
@@ -192,7 +192,7 @@ Reel Read:
 
 ### 第 7 步：导出与验收
 
-预览通过后，单页面优先在工作区点击「导出视频」，由现有渲染器和验收工具输出编辑版 MP4。工作区的音频修改不会自动写回 `build.sh`，有编辑时导出必须使用已试听的当前会话，不能绕回原混音。未使用工作区音频编辑时，也可在用户确认后运行 `sh <slug>/build.sh`；它会构建配乐、检查确定性、渲染、生成文字审片材料，并按相同规格验收。混合音轨沿用 `AUDIO=file AUDIO_FILE=audio/final.wav sh build.sh`，旧的 synth/tone/layer/none 方式仍可用。长片确认后用 `build-long.mjs` 持久分章构建，详见 `references/long-form.md`。
+预览通过后，单页面优先在工作区点击「导出视频」，由现有渲染器和验收工具输出编辑版 MP4。工作区的音频修改不会自动写回 `build.mjs`，有编辑时导出必须使用已试听的当前会话，不能绕回原混音。未使用工作区音频编辑时，也可在用户确认后运行 `node <slug>/build.mjs`；它会构建配乐、检查确定性、渲染、生成文字审片材料，并按相同规格验收。混合音轨沿用 AUDIO=file AUDIO_FILE=audio/final.wav node build.mjs（Windows PowerShell 先设 $env:AUDIO='file'; $env:AUDIO_FILE='audio/final.wav'）`，旧的 synth/tone/layer/none 方式仍可用。长片确认后用 `build-long.mjs` 持久分章构建，详见 `references/long-form.md`。
 
 `--subframes`、`--dpr`、`--grain` 按 brief 传入，工作区出口和手动构建使用同一组已确认规格；这些参数会增加耗时，开渲前报告预计时间。循环片另带 `--loop` 验收。预览确认不替代导出后的技术检查和成片复核。
 
@@ -203,7 +203,7 @@ node <skill>/scripts/inspect.mjs qa <slug>/out/final.mp4 --out <slug>/qa/final \
   --expect-size 1920x1080 --expect-fps 30 --expect-duration 16 --audio required   # 无声片用 --audio none；循环片加 --loop
 ```
 
-它检查文件能否解码、尺寸、帧率、时长、帧数、音轨、黑帧、响度、真峰值，以及循环接缝（需要时）。只要有一项 FAIL，退出码就是 1，必须修好。没传的规格项会列成 `NOT CHECKED`，这时不算验收通过。`build.sh` 会自动带上规格。渲染工具本身也会拒绝发布帧数不对的文件。
+它检查文件能否解码、尺寸、帧率、时长、帧数、音轨、黑帧、响度、真峰值，以及循环接缝（需要时）。只要有一项 FAIL，退出码就是 1，必须修好。没传的规格项会列成 `NOT CHECKED`，这时不算验收通过。`build.mjs` 会自动带上规格。渲染工具本身也会拒绝发布帧数不对的文件。
 
 **审片**：给人判断用，不是程序判定。看抽帧图、手机尺寸抽帧图、冻结段（`HOLDS` 里声明过的会标成刻意停留，其余要判断是不是空拍）、切点、按镜头的运动和闪帧、文字框景的标记图（`qa/text-*.png`）、音频图，按 `references/review.md` 的审片表逐项写下观察和最严重的 3 个问题，有数字和图表的片子要核对内容与数字口径。修完只重渲有问题的那一段，再出整片，过程记到 `qa/review_log.md`。宿主支持子 agent 时，再派一个没参与制作的 agent 只看这些材料挑问题（review.md「独立审片」）。
 
@@ -218,7 +218,7 @@ node <skill>/scripts/inspect.mjs qa <slug>/out/final.mp4 --out <slug>/qa/final \
 - `brief.md`：完整的结构化提示词、需求与风格确认、最终预览及导出确认记录，可以复用，不含 API 凭据。
 - 有口播时附用户原稿、句段时间轴和各轨来源；长片附章节 manifest 和断点重建命令。
 - 技术检查结果（全部 PASS）、审片记录里还没解决的问题、渲染用时。
-- 怎么重新打开工作区、如何重建当前编辑版（见 editor.md），原构建仍可 `sh build.sh`，以及怎么只改一段。
+- 怎么重新打开工作区、如何重建当前编辑版（见 editor.md），原构建仍可 `node build.mjs`，以及怎么只改一段。
 - 第三方素材（字体、用户素材、曲子）的来源和授权；事实类内容提醒用户再核对一遍。
 
 复盘结论和复核证据保存在项目的 `qa/review_log.md`，与本次制作文件一起交付。
@@ -242,21 +242,21 @@ node <skill>/scripts/inspect.mjs qa <slug>/out/final.mp4 --out <slug>/qa/final \
 
 | 目的 | 命令 |
 |---|---|
-| 装依赖 / 查环境 / 自测 | `sh $S/setup.sh` · `node $S/check-env.mjs` · `cd $S && npm test` |
-| 建项目 | `sh $S/scaffold.sh <slug> [--audio synth\|tone\|layer\|file\|none]` |
+| 装依赖 / 查环境 / 自测 | `node $S/setup.mjs` · `node $S/check-env.mjs` · `cd $S && npm test` |
+| 建项目 | `node $S/scaffold.mjs <slug> [--audio synth\|tone\|layer\|file\|none]` |
 | 静帧 + 拼图 | `node $S/render.mjs <slug> --still 0.5,3,7.2 --sheet` · `--range 0:15:1 --sheet` |
 | 三个方向 / 封面 | `node $S/render.mjs <slug> --directions a,b,c --at 14.5,2,0` → `qa/directions.png` · `--poster 14.5` → `out/poster.png` |
 | 确定性 | `node $S/render.mjs <slug> --determinism` |
-| 文字框景（审片材料） | `node $S/render.mjs <slug> --text-check [--safe auto\|none\|T,R,B,L]` → `qa/text.json` + 标记图（build.sh 自动跑） |
+| 文字框景（审片材料） | `node $S/render.mjs <slug> --text-check [--safe auto\|none\|T,R,B,L]` → `qa/text.json` + 标记图（build.mjs 自动跑） |
 | 拆参考片 | `node $S/inspect.mjs grid <ref> --strips`（剪点 + 节拍网格 + 转场连续帧）· `heat <ref>`（每段的运动热图） |
-| 确认后导出 / 分段 | 工作区「导出视频」；未改音轨时也可 `sh <slug>/build.sh --subframes 2 --grain 4`（规格在 build.sh 顶部）。离线片段仅按需 `--start 6 --duration 3 --out out/seg.mp4` |
+| 确认后导出 / 分段 | 工作区「导出视频」；未改音轨时也可 `node <slug>/build.mjs --subframes 2 --grain 4`（规格在 build.mjs 顶部）。离线片段仅按需 `--start 6 --duration 3 --out out/seg.mp4` |
 | 声音 | `node $S/audio.mjs build <slug>/score.mjs`（或 `score.tone.js`）· `samples salamander` · `beats <track> --out audio/beats.json` · `check audio/music.wav`（读 `DROPS`） |
 | 口播 / 最终混音 | `node $S/narration.mjs tts …` · `import …` · `mix …` · `check …`（参数见 narration.md） |
 | 长片重建 | `node $S/build-long.mjs <slug>/chapters.json`（参数见 long-form.md） |
 | 按需展示制作进度 | `node $S/editor.mjs <slug> --progress`；`node $S/progress.mjs <slug> --stage scenes --publish . --size 1920x1080 --fps 30`（用户想看过程时启用，见 progress.md） |
 | 默认工作区预览 | `node $S/editor.mjs <slug> --size 1920x1080 --fps 30`（制作后主动打开，用户预览确认后才导出，见 editor.md） |
 | 轻量调试预览 | `node $S/preview.mjs <slug> --size 1920x1080 --fps 30`（可加 `--audio audio/final.wav`；用法见 stack.md，不替代默认工作区审片） |
-| 验收与审片材料 | `node $S/inspect.mjs qa out/final.mp4 --expect-…`（build.sh 自动带）· `sheet` · `phone` · `strip --at 4.2` · `loop` · `motion`（读 `SHOTS` / `HOLDS`：按镜头的运动、跳变、闪帧） |
+| 验收与审片材料 | `node $S/inspect.mjs qa out/final.mp4 --expect-…`（build.mjs 自动带）· `sheet` · `phone` · `strip --at 4.2` · `loop` · `motion`（读 `SHOTS` / `HOLDS`：按镜头的运动、跳变、闪帧） |
 
 ## 参考文件（按需读）
 

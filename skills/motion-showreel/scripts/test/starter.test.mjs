@@ -11,14 +11,14 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'showreel-prepared-'));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 function scaffold(name) {
   const project = path.join(tmp, name);
-  execFileSync('sh', [path.join(scripts, 'scaffold.sh'), project, '--audio', 'file']);
+    execFileSync(process.execPath, [path.join(scripts, 'scaffold.mjs'), project, '--audio', 'file']);
   return project;
 }
 function wave(file, duration) {
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=440:duration=${duration}`, '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-ar', '48000', file]);
 }
 function build(project) {
-  return spawnSync('sh', ['build.sh'], { cwd: project, encoding: 'utf8', env: { ...process.env, SIZE: '160x90', FPS: '12', TEXTCHECK: '0', AUDIO_FILE: 'audio/final mix.wav' }, timeout: 60000 });
+    return spawnSync(process.execPath, ['build.mjs'], { cwd: project, encoding: 'utf8', env: { ...process.env, SIZE: '160x90', FPS: '12', TEXTCHECK: '0', AUDIO_FILE: 'audio/final mix.wav' }, timeout: 60000 });
 }
 
 test('prepared audio starter preserves paths with spaces and passes complete acceptance', () => {

@@ -31,11 +31,11 @@ node <skill>/scripts/inspect.mjs qa <slug>/out/final.mp4 --out <slug>/qa/final \
 | 响度 / 真峰值（有音轨时） | 超出 −14 ± 1.5 LUFS，或真峰值 > −1 dBTP |
 | 循环接缝（`--loop`） | 最后一帧 → 第一帧的 SSIM 比它两侧的普通帧间步（倒数第二 → 最后、第一 → 第二）低 0.03 以上，且低于 0.97。最后一帧本来就比第一帧早一帧，所以快速运动的循环首尾帧不会完全一样，比较的是「这一步跳没跳」 |
 
-没传的规格项（尺寸、帧率、时长、音轨）会列成 `NOT CHECKED`，结尾也不会说「全部通过」。这时不算验收，要按 brief 的规格重跑。`sh build.sh` 会用顶部的 `FPS / SIZE / AUDIO / LOOP` 和 `timeline.js` 的 `DUR` 自动带齐。
+没传的规格项（尺寸、帧率、时长、音轨）会列成 `NOT CHECKED`，结尾也不会说「全部通过」。这时不算验收，要按 brief 的规格重跑。`改成node build.mjs（FPS/SIZE/AUDIO/LOOP 用环境变量设置，见 build.mjs 顶部默认值）` 和 `timeline.js` 的 `DUR` 自动带齐。
 
 参数写错（比如 `--audio requried`、`--expect-size 1920*1080`）会直接报错退出，不会悄悄跳过那一项检查。
 
-另外：`render.mjs` 发现帧数不对、页面报错、编码器退出时，会直接失败，不留下任何输出；`--determinism` 必须通过。`build.sh` 在出片之前自动跑一次（`DETERMINISM=0` 只在草稿时跳过）。
+另外：`render.mjs` 发现帧数不对、页面报错、编码器退出时，会直接失败，不留下任何输出；`--determinism` 必须通过。`build.mjs` 在出片之前自动跑一次（`DETERMINISM=0` 只在草稿时跳过）。
 
 ## 2. 审片
 
@@ -48,7 +48,7 @@ node <skill>/scripts/inspect.mjs qa <slug>/out/final.mp4 --out <slug>/qa/final \
 还有两份量出来的线索，同样不判 PASS / FAIL，看完自己下结论：
 
 - **按镜头的运动**（`qa` 和 `inspect.mjs motion` 都会打印；`timeline.js` 有 `SHOTS` 时按镜头分，没有就按硬切分段）：每个镜头里每一帧步有多少画面在变（moving）、多少帧步完全不变（still）、有几次突然的跳变（jumps）。重点看三种提示：「nothing moves」（不在 `HOLDS` 里的长时间不动）、「sudden jumps」（整屏噪点隔几帧重新生成一次，读起来就是闪；或者某一帧穿帮）、「every other step is still」（步进动画，或者镜头也被步进了）。另外单独列出 **flash frames**：某一帧和前后两帧都不一样、前后两帧却一样，多半是一帧闪白、一帧空画面或一层东西漏画，除非是刻意的单帧频闪。一连串紧挨着的整屏大变化会单独列成 **rapid whole-frame changes**：快速蒙太奇是刻意的；笔触、噪点、纹理隔几帧整屏重新生成一次，看起来就是闪。
-- **文字框景**（`render.mjs --text-check`，`build.sh` 默认会跑，结果在 `qa/text.json` 和 `qa/text-t<秒>.png`）：字被画面边缘切掉（CUT；展示级大字出血记为 BLEED，多半是刻意的）、两串不同的字叠在一起（OVERLAP）、竖屏字落进平台 UI 会盖住的上下安全区（SAFE）、字小到手机上读不出（TINY）。持续 ≥ 0.3 秒才报，每个时刻出一张标了框的图。它看得到 Canvas 2D 和 DOM / SVG 的字，看不到 WebGL 纹理和图片里的字，这些帧要自己看。
+- **文字框景**（`render.mjs --text-check`，`build.mjs` 默认会跑，结果在 `qa/text.json` 和 `qa/text-t<秒>.png`）：字被画面边缘切掉（CUT；展示级大字出血记为 BLEED，多半是刻意的）、两串不同的字叠在一起（OVERLAP）、竖屏字落进平台 UI 会盖住的上下安全区（SAFE）、字小到手机上读不出（TINY）。持续 ≥ 0.3 秒才报，每个时刻出一张标了框的图。它看得到 Canvas 2D 和 DOM / SVG 的字，看不到 WebGL 纹理和图片里的字，这些帧要自己看。
 
 文字框景检查读取原页面，不会验证子帧平均后的像素。使用运动模糊且有文案或镜头硬切时，导出后用 `inspect.mjs strip --at <切换秒数>` 检查成片的连续帧，留意只出现一帧的叠印。需要区分文案状态和连续运动时间时，可按 `stack.md` 的可选采样上下文接入；保留有意的交叉淡化。
 
@@ -125,12 +125,12 @@ node <skill>/scripts/inspect.mjs qa <slug>/out/final.mp4 --out <slug>/qa/final \
 - [ ] 长片章节清单、局部源码和音频可重建，各章检查和接缝复核有记录
 - [ ] 叙事/讲解片看过代表性连续小样；内容有可理解的状态变化，镜头承接自然，没有用文字换页或装饰运动替代讲解
 
-- [ ] `inspect.mjs qa` 技术检查全部 PASS，没有 NOT CHECKED（参数和 brief 的规格一致；用 `sh build.sh` 最省事）
+- [ ] `inspect.mjs qa` 技术检查全部 PASS，没有 NOT CHECKED（参数和 brief 的规格一致；用 `node build.mjs` 最省事）
 - [ ] `--determinism` 通过
 - [ ] 事实、数字、名称和用户提供的一致；不确定的已单独列出
 - [ ] 文字在手机尺寸下可读，没有溢出或重叠（`qa/text.json` 里每一条都看过，刻意的出血、微注释在审片记录里写明）
 - [ ] 按镜头的运动和 flash frames 都看过：没有不在 `HOLDS` 里的空拍、没有意外的闪帧
 - [ ] 素材和字体的授权已列出
 - [ ] `qa/review_log.md` 写明了审片观察、改了什么、还剩什么问题
-- [ ] `brief.md`、`build.sh`、实际导出的 MP4（`out/editor-<task-id>.mp4` 或 `out/final.mp4`）及 `out/poster.png` 都在项目目录里；编辑版附对应会话与任务记录
+- [ ] `brief.md`、`build.mjs`、实际导出的 MP4（`out/editor-<task-id>.mp4` 或 `out/final.mp4`）及 `out/poster.png` 都在项目目录里；编辑版附对应会话与任务记录
 - [ ] 交付说明里请用户自己看一遍成片（有声片要打开声音）

@@ -259,27 +259,27 @@ test('render: --poster writes out/poster.png; --directions writes singles + a la
 });
 
 // ── scaffold + build.sh: the spec drives both the render and the checks ──
-const SCAFFOLD = path.join(S, 'scaffold.sh');
+const SCAFFOLD = path.join(S, 'scaffold.mjs');
 test('scaffold: --audio copies only the chosen score and presets build.sh', () => {
-  const files = mode => { const d = path.join(tmp, `sc-${mode}`); const r = spawnSync('sh', [SCAFFOLD, d, ...(mode ? ['--audio', mode] : [])], { encoding: 'utf8' }); assert.equal(r.status, 0, r.stderr + r.stdout); return [fs.readdirSync(d).filter(f => f.startsWith('score')).sort(), /^AUDIO=\$\{AUDIO:-(\w+)\}/m.exec(fs.readFileSync(path.join(d, 'build.sh'), 'utf8'))[1]]; };
+    const files = mode => { const d = path.join(tmp, `sc-${mode}`); const r = spawnSync(process.execPath, [SCAFFOLD, d, ...(mode ? ['--audio', mode] : [])], { encoding: 'utf8' }); assert.equal(r.status, 0, r.stderr + r.stdout); return [fs.readdirSync(d).filter(f => f.startsWith('score')).sort(), /const AUDIO = process\.env\.AUDIO \|\| '(\w+)'/.exec(fs.readFileSync(path.join(d, 'build.mjs'), 'utf8'))[1]]; };
   assert.deepEqual(files(''), [['score.mjs'], 'synth']);
   assert.deepEqual(files('tone'), [['score.tone.js'], 'tone']);
   assert.deepEqual(files('layer'), [['score.mjs', 'score.tone.js'], 'layer']);
   assert.deepEqual(files('none'), [[], 'none']);
-  assert.equal(spawnSync('sh', [SCAFFOLD, path.join(tmp, 'sc-bad'), '--audio', 'piano']).status, 1);
+    assert.equal(spawnSync(process.execPath, [SCAFFOLD, path.join(tmp, 'sc-bad'), '--audio', 'piano']).status, 1);
 });
 test('build.sh: renders, builds the chosen score, and runs qa with the full spec', () => {
   const d = path.join(tmp, 'built');
-  assert.equal(spawnSync('sh', [SCAFFOLD, d]).status, 0);
+  assert.equal(spawnSync(process.execPath, [SCAFFOLD, d]).status, 0);
   fs.copyFileSync(path.join(S, '..', 'assets', 'starter', 'score.tone.js'), path.join(d, 'score.tone.js'));   // a stray second score
   const env = { ...process.env, SIZE: '320x180', FPS: '12' };
-  const r = spawnSync('sh', [path.join(d, 'build.sh')], { encoding: 'utf8', env });
+  const r = spawnSync(process.execPath, [path.join(d, 'build.mjs')], { encoding: 'utf8', env });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /score\.tone\.js is ignored \(AUDIO=synth\)/);
   for (const re of [/PASS\s+size — 320x180/, /PASS\s+fps — 12\.00/, /PASS\s+duration — 8\.000s/, /PASS\s+audio track present/, /All technical checks passed/, /text framing · /, /motion per shot \(SHOTS/]) assert.match(r.stdout, re);
   assert.ok(fs.existsSync(path.join(d, 'qa', 'text.json')));
   assert.doesNotMatch(r.stdout, /NOT CHECKED/);
-  const flag = spawnSync('sh', [path.join(d, 'build.sh'), '--fps', '60'], { encoding: 'utf8', env });
+  const flag = spawnSync(process.execPath, [path.join(d, 'build.mjs'), '--fps', '60'], { encoding: 'utf8', env });
   assert.equal(flag.status, 1);
   assert.match(flag.stdout, /FPS \/ SIZE are variables here/);
 });
@@ -325,25 +325,26 @@ test('inspect loop: fast periodic motion is seamless; a broken phase is a jump',
 // ── build.sh: determinism gate and a real Tone layer ──
 test('build.sh: a non-deterministic page is refused before anything is rendered', () => {
   const d = path.join(tmp, 'nondet');
-  assert.equal(spawnSync('sh', [SCAFFOLD, d, '--audio', 'none']).status, 0);
+  assert.equal(spawnSync(process.execPath, [SCAFFOLD, d, '--audio', 'none']).status, 0);
   fs.writeFileSync(path.join(d, 'index.html'), `<canvas id="c"></canvas><script type="module">
     const q = new URLSearchParams(location.search), c = document.getElementById('c'); c.width = +q.get('w'); c.height = +q.get('h');
     const g = c.getContext('2d'); let x = 0; window.DUR = 1;
     window.render = t => { x += 7; g.fillStyle = '#eee'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#111'; g.fillRect(x % c.width, 0, 40, c.height); };
     window.READY = true;</script>`);
-  const r = spawnSync('sh', [path.join(d, 'build.sh')], { encoding: 'utf8', env: { ...process.env, SIZE: '160x90', FPS: '12' } });
+  const r = spawnSync(process.execPath, [path.join(d, 'build.mjs')], { encoding: 'utf8', env: { ...process.env, SIZE: '160x90', FPS: '12' } });
   assert.equal(r.status, 1, r.stdout);
   assert.match(r.stderr, /NOT deterministic/);
   assert.ok(!fs.existsSync(path.join(d, 'out', 'final.mp4')));
 });
 test('build.sh AUDIO=layer: the Tone layer really ends up in the mix', { skip: !fs.existsSync(path.join(S, 'node_modules', 'tone', 'build', 'Tone.js')) && 'tone not installed' }, async () => {
   const d = path.join(tmp, 'layer');
-  assert.equal(spawnSync('sh', [SCAFFOLD, d, '--audio', 'layer']).status, 0);
+  assert.equal(spawnSync(process.execPath, [SCAFFOLD, d, '--audio', 'layer']).status, 0);
   assert.match(fs.readFileSync(path.join(d, 'score.mjs'), 'utf8'), /tone\.wav/);
   // a sample-free Tone score: one chord for the whole piece (the starter's needs the Salamander download)
   fs.writeFileSync(path.join(d, 'score.tone.js'), `import { DUR } from './timeline.js';\nexport { DUR };\nexport default async (Tone) => { new Tone.PolySynth(Tone.Synth).toDestination().triggerAttackRelease(['A3', 'C4', 'E4'], DUR - 0.5, 0); };\n`);
   const env = { ...process.env, SIZE: '160x90', FPS: '12' };
-  const r = spawnSync('sh', [path.join(d, 'build.sh')], { encoding: 'utf8', env });
+  const r = spawnSync(process.execPath, [path.join(d, 'build.mjs')], { encoding: 'utf8', env });
+  if (r.error) console.log('SPAWN ERROR:', r.error);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /PASS\s+audio track present/);
   // 0.6–1.5 s has no SFX cue in the starter timeline: whatever sounds there is the Tone layer
@@ -352,7 +353,7 @@ test('build.sh AUDIO=layer: the Tone layer really ends up in the mix', { skip: !
   let e = 0; for (let i = Math.round(0.6 * SR); i < Math.round(1.5 * SR); i++) e += L[i] * L[i];
   assert.ok(10 * Math.log10(e / (0.9 * SR)) > -40, 'the Tone chord should be audible where there are no SFX');
   fs.writeFileSync(path.join(d, 'score.mjs'), `import { DUR } from './timeline.js';\nexport { DUR };\nexport default S => { S.bus('x').add(S.tick(), 1); };\n`);
-  const lost = spawnSync('sh', [path.join(d, 'build.sh')], { encoding: 'utf8', env });
+    const lost = spawnSync(process.execPath, [path.join(d, 'build.mjs')], { encoding: 'utf8', env });
   assert.equal(lost.status, 1);
   assert.match(lost.stdout, /never loads audio\/tone\.wav/);
 });
