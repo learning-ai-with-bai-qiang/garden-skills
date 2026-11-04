@@ -181,9 +181,13 @@ skills/motion-showreel/
 │   ├── stack.md             页面契约、确定性、各技术的坑、字体、多画幅、性能
 │   ├── recipes.md           现成写法（遮罩逐字、形变链、粒子组字、无缝循环、WebGL 后期、Canvas 伪 3D……）
 │   ├── brief-template.md    每支片子的结构化提示词模板
-│   └── review.md            技术检查、审片表、独立审片、常见问题、交付清单
+│   ├── review.md            技术检查、审片表、独立审片、常见问题、交付清单
+│   ├── guided-mode.md       ⭐️【新增】双模式引导（一句话出片 / 精细问卷）
+│   └── gates.md             ⭐️【新增】门禁协议与反绕过说明
 ├── scripts/
-│   ├── setup.mjs · check-env.mjs · scaffold.mjs
+│   ├── setup.mjs            (替换 setup.sh)
+│   ├── check-env.mjs
+│   ├── scaffold.mjs         (替换 scaffold.sh)
 │   ├── render.mjs           静帧、拼图、三方向、封面、确定性、文字框景、小样、正片
 │   ├── audio.mjs            build · check · beats · samples · mux
 │   ├── narration.mjs        tts · import · mix · check
@@ -192,7 +196,9 @@ skills/motion-showreel/
 │   ├── preview.mjs          轻量调试：带声音播放、拖动、逐帧与预览倍速
 │   ├── build-long.mjs       持久章节缓存、失败重试、拼接与验收
 │   ├── inspect.mjs          qa · sheet · phone · strip · frames · motion · loop · grid · heat
+│   ├── gate.mjs             ⭐️【新增】门禁 CLI 工具
 │   ├── lib/                 合成器、Tone.js 渲染、FFT、浏览器、项目工具、帧分析、文字钩子
+│   │   └── gate.mjs         ⭐️【新增】门禁核心逻辑（含状态校验、哈希）
 │   └── test/                回归测试（npm test）
 └── assets/starter/          页面、motion/timeline/narration 工具、预览控件、配乐与 build.mjs
 ```

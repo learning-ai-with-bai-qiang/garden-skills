@@ -168,33 +168,39 @@ The two tiers can be layered (Tone.js music underneath, synthesized SFX on top, 
 
 ```text
 skills/motion-showreel/
-├── SKILL.md                 workflow, baseline rules, tool cheat sheet
+├── SKILL.md                 Workflow + baselines + tool cheatsheet
 ├── README.md / README.zh-CN.md
 ├── manifest.json
 ├── references/
-│   ├── formats.md           Formats, including narration and chapter-based films
+│   ├── formats.md           Use cases (including narration and long-form chapters)
 │   ├── styles/              INDEX.md + _template.md + 40 style files
-│   ├── craft.md             rhythm, motion, transitions, camera, type, colour, texture, signature moments, default-look blocklist
-│   ├── sound.md             sound direction, synth API, Tone.js, arcs, groove / harmony vocabulary, mixing, audio defaults
-│   ├── narration.md         user-script TTS, recording timestamps, keyword events and voice-first mixing
-│   ├── long-form.md         up to 20 minutes, chapter manifests, caching and recovery
-│   ├── stack.md             page contract, determinism, per-tech pitfalls, fonts, multi-format, performance
-│   ├── recipes.md           ready-made snippets (masked type, morph chains, particle type, seamless loops, WebGL post, canvas pseudo-3-D …)
-│   ├── brief-template.md    the structured prompt every piece starts from
-│   └── review.md            technical checks, review sheet, independent review, common problems, delivery checklist
+│   ├── craft.md             Rhythm, motion, transitions, camera, typography, color, texture, signature moments, default taste checklist
+│   ├── sound.md             Sound direction, synthesis API, Tone.js, dramatic curve, rhythm/harmony vocabulary, mixing, sound default taste
+│   ├── narration.md         User script TTS, recording timestamps, keyword events, dialogue-first mixing
+│   ├── long-form.md         Up to 20 minutes, chapter checklist, caching and resume
+│   ├── stack.md             Page contract, determinism, tech pitfalls, fonts, multi-aspect ratio, performance
+│   ├── recipes.md           Ready-to-use snippets (masked text, morph chains, particle typography, seamless loops, WebGL post-processing, Canvas pseudo-3D...)
+│   ├── brief-template.md    Structured prompt template for each film
+│   ├── review.md            Technical checks, review sheet, independent review, FAQs, delivery checklist
+│   ├── guided-mode.md       ⭐️ [NEW] Dual-mode guide (One-sentence fast track / Detailed questionnaire)
+│   └── gates.md             ⭐️ [NEW] Gate protocol and anti-bypass rules
 ├── scripts/
-│   ├── setup.mjs · check-env.mjs · scaffold.mjs
-│   ├── render.mjs           stills, sheets, three directions, poster, determinism, text framing, proxy, master
+│   ├── setup.mjs            (Replaces setup.sh)
+│   ├── check-env.mjs
+│   ├── scaffold.mjs         (Replaces scaffold.sh)
+│   ├── render.mjs           Stills, sheets, three directions, posters, determinism, text framing, proxies, final cuts
 │   ├── audio.mjs            build · check · beats · samples · mux
 │   ├── narration.mjs        tts · import · mix · check
-│   ├── progress.mjs         Optional stage updates, image/audio artifacts and stable previews
-│   ├── editor.mjs           default review workspace, track edits, saves and approved exports
-│   ├── preview.mjs          lightweight audio playback, scrubbing, frame stepping and speed
-│   ├── build-long.mjs       Persistent chapter cache, retry, assembly and acceptance
+│   ├── progress.mjs         Publish production stages, image/audio artifacts, and stable previews on demand
+│   ├── editor.mjs           Default review workspace, multi-track editing, save, export after confirmation
+│   ├── preview.mjs          Lightweight debugging: playback with sound, scrubbing, frame-by-frame, preview speed
+│   ├── build-long.mjs       Persistent chapter cache, failure retry, concatenation and acceptance
 │   ├── inspect.mjs          qa · sheet · phone · strip · frames · motion · loop · grid · heat
-│   ├── lib/                 synth, Tone.js renderer, FFT, browser, project, frame analysis, text hook
-│   └── test/                regression tests (npm test)
-└── └── assets/starter/      page, motion/timeline/narration helpers, preview controls, scores and build.mjs
+│   ├── gate.mjs             ⭐️ [NEW] Gate CLI tool
+│   ├── lib/                 Synthesizer, Tone.js rendering, FFT, browser, project utils, frame analysis, text hooks
+│   │   └── gate.mjs         ⭐️ [NEW] Gate core logic (state validation, hashing)
+│   └── test/                Regression tests (npm test)
+└── assets/starter/          Page, motion/timeline/narration utils, preview controls, scores, and build.mjs
 ```
 
 ---
