@@ -24,12 +24,22 @@ import { fileURLToPath } from 'node:url';
 import { args, die } from './lib/browser.mjs';
 import { findTimeline, loadTimeline, sameClock } from './lib/project.mjs';
 import { diffProfile, shotMotion, bursts, findStarts, fitGrid, heatmap } from './lib/frames.mjs';
+import { assertGate, findProjectRoot, STATE_FILE } from './lib/gate.mjs';
 
 const { pos, opt } = args(process.argv.slice(2));
 const [cmd, video] = pos;
 const CMDS = { qa, sheet, phone, strip, frames, loop, motion, grid, heat };
 if (!CMDS[cmd]) die('usage: inspect.mjs qa|sheet|phone|strip|frames|loop|motion|grid|heat <video> …');
 if (!video || !fs.existsSync(video)) die(`video not found: ${video}`);
+
+// ── 门禁：技术验收是第 7 步，只有在第 6 步"可以导出"之后才有意义。
+// 只对项目内的片子校门（项目外拿 inspect 看随便一段素材不受影响）。
+if (cmd === 'qa') {
+  const root = findProjectRoot(path.dirname(path.resolve(video)));
+  if (fs.existsSync(path.join(root, STATE_FILE))) {
+    assertGate(root, 'export', 'inspect qa（第 7 步：技术验收）');
+  }
+}
 const info = probe(video);
 const outPrefix = path.resolve(typeof opt.out === 'string' ? opt.out.replace(/\.png$/, '') : path.join(path.dirname(path.resolve(video)), '..', 'qa', path.basename(video, path.extname(video))));
 fs.mkdirSync(path.dirname(outPrefix), { recursive: true });

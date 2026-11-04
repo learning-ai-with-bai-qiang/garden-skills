@@ -17,9 +17,16 @@ function message(text, error = false) { $('message').textContent = text; $('mess
 async function api(url, data) {
   const response = await fetch(url, data === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Showreel-Token': token }, body: JSON.stringify(data) });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+  if (!response.ok) {
+    const err = new Error(result.error || `HTTP ${response.status}`);
+    err.status = response.status;
+    err.body = result;
+    throw err;
+  }
   return result;
 }
+
+
 function report(error) { message(error.message || String(error), true); }
 function editable(track) { return track && ['bgm', 'sfx'].includes(track.kind); }
 function selection() {
@@ -256,8 +263,20 @@ async function startJob(type, existingJob = null) {
   $('audio-state').textContent = isExport ? '导出中…' : '正在更新试听音频…';
   try {
     if (!existingJob) await save();
-    currentJob = existingJob || await api('/api/jobs', { type, session: clone(session) });
+    if (existingJob) currentJob = existingJob;
+    else {
+      const jobBody = { type, session: clone(session) };
+      if (type === 'export') jobBody.clickToken = window.__EXPORT_CLICK_TOKEN__;
+      try { currentJob = await api('/api/jobs', jobBody); }
+      catch (e) {
+        if (e.status === 409 && e.body?.job) {
+          currentJob = e.body.job;
+          message(isExport ? '正在渲染中，请稍候…' : '正在处理中，请稍候…');
+        } else throw e;
+      }
+    }
     $('cancel-job').disabled = false;
+
     while (currentJob.status === 'running') {
       if (isExport) {
         $('job-phase').textContent = currentJob.phase; $('job-progress').value = currentJob.progress;

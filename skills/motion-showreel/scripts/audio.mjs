@@ -25,11 +25,20 @@ import { renderTone, fetchPack, PACKS, SAMPLES_DIR } from './lib/tone-render.mjs
 import { stft } from './lib/fft.mjs';
 import { args, die } from './lib/browser.mjs';
 import { findTimeline, loadTimeline, sameClock } from './lib/project.mjs';
+import { assertGate, findProjectRoot } from './lib/gate.mjs';
 
 const { pos, opt } = args(process.argv.slice(2));
 const cmd = pos[0];
 const cmds = { build, beats, check, mux, samples, loudness };
 if (!cmds[cmd]) die('usage: audio.mjs build|samples|beats|check|mux|loudness …  (see the header of this file)');
+
+// ── 门禁：合成 BGM 是第 5 步，必须在风格帧确认（第 3 步门）之后。
+// 先确认方向再配乐，否则音画会跟着一个没定的方向走。
+if (cmd === 'build') {
+  const projDir = pos[1] ? findProjectRoot(path.resolve(pos[1])) : process.cwd();
+  assertGate(projDir, 'style', 'audio build（第 5 步：合成 BGM/音效）');
+}
+
 await cmds[cmd]();
 
 async function build() {

@@ -29,6 +29,11 @@ function run(cmd, args, opts = {}) {
 }
 function die(msg) { console.log(msg); process.exit(1); }
 
+// ── 门禁：build = 出片 + 验收，属于第 7 步。
+// 用户没在第 6 步说过"可以导出"，这里直接拒绝（exit 2），不产出 MP4。
+const { assertGate } = await import(pathToFileURL(join(SKILL, 'scripts', 'lib', 'gate.mjs')).href);
+assertGate(HERE, 'export', 'build.mjs 出片 + 技术验收（第 7 步）');
+
 // 1. DUR from timeline.js
 const timelinePath = join(HERE, 'timeline.js');
 const { DUR } = await import(pathToFileURL(timelinePath).href);

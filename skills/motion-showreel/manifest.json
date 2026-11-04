@@ -1,8 +1,8 @@
 {
   "name": "motion-showreel",
-  "version": "0.2.0",
-  "category": "Motion Graphics / Code Video",
-  "description": "Make code-rendered motion videos and narrated explainers up to 20 minutes, with MP4 and editable source. Confirm requirements and style frames before production. Preserve the 40-style library, deterministic render(t), beat tools, built-in synthesis and Tone.js; add independent music/SFX sources, Gemini/MiniMax TTS using user-supplied scripts, recording timestamps, voice-first mixing, persistent chapter builds and technical acceptance separate from human review.",
+  "version": "0.4.0",
+  "category": "Motion Graphics / 代码动画视频",
+  "description": "用代码制作图形、文字或界面动画视频，输出 MP4 和可编辑源码，最长 20 分钟。本版本深度适配 Windows 与国产大模型，内置小白双模式引导（极速/精细）。引入代码级硬门禁，强制锁定需求、风格与导出确认，杜绝模型乱跑。保留原版 40 种风格库、确定性渲染、内置合成与 Tone.js 音频链路，支持用户原稿 TTS、录音时间戳对齐、分章构建与独立技术验收。",
   "homepage": "https://github.com/ConardLi/garden-skills/tree/main/skills/motion-showreel",
   "compat": [
     "claude-code",

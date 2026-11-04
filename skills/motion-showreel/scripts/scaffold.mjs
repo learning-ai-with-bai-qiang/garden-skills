@@ -10,6 +10,7 @@
 import { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assertGate, ensureState, readState, writeState } from './lib/gate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILL = resolve(HERE, '..');
@@ -44,6 +45,11 @@ if (existsSync(join(DEST, 'index.html'))) {
   process.exit(1);
 }
 
+// ── 门禁：建项目属于第 3 步，必须先过第 1 步（需求确认）和第 2 步（brief.md）。
+// 这里是红线"用户未确认前严禁建项目"的机器实现，不是建议。
+ensureState(DEST);
+assertGate(DEST, 'brief', `scaffold 建项目（第 3 步）→ ${DEST}`);
+
 mkdirSync(DEST, { recursive: true });
 for (const f of ['index.html', 'motion.js', 'timeline.js', 'narration.js', 'preview.js', 'package.json']) {
   copyFileSync(join(ST, f), join(DEST, f));
@@ -72,6 +78,11 @@ writeFileSync(join(DEST, 'build.mjs'), buildTpl, 'utf8');
 for (const d of ['fonts', 'assets', 'audio', 'qa', 'out']) {
   mkdirSync(join(DEST, d), { recursive: true });
 }
+
+// 记下音频模式：第 6 步的导出门要用它判断"是否必须有音轨"
+const st = readState(DEST);
+st.project = { ...(st.project || {}), scaffolded: true, scaffoldedAt: new Date().toISOString(), audioMode: AUDIO };
+writeState(DEST, st);
 
 console.log(`✓ project at ${DEST}  (audio: ${AUDIO})`);
 console.log(`  stills:  node ${join(SKILL, 'scripts', 'render.mjs')} ${DEST} --still 1,3,6 --sheet`);

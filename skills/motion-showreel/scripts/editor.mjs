@@ -8,9 +8,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { args, resolveTarget } from './lib/browser.mjs';
 import { discoverEditorProject, localFile, readJSON, atomicJSON, initialSession, validateSession, sessionKey, isOriginalSession } from './lib/editor-model.mjs';
 import { waveform, prepareEditorAudio, exportEditor, newJob, stopProcess } from './lib/editor-media.mjs';
+import { assertGate, recordPreview, exportRealArtifacts, confirmExportUI } from './lib/gate.mjs';
 
 const ASSETS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../assets/editor');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.flac': 'audio/flac', '.mp4': 'video/mp4', '.webm': 'video/webm', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.avif': 'image/avif', '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.hdr': 'application/octet-stream' };
+//点击令牌的有效期是 10 分钟**，这个令牌 10 分钟之后就失效。
+const CLICK_TOKEN_TTL_MS = 10 * 60 * 1000;
 function send(res, status, data) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(data)); }
 async function body(req) {
   let text = '';
@@ -33,6 +36,11 @@ function serveFile(req, res, file) {
 }
 export async function createEditorServer(target, options = {}) {
   const resolved = resolveTarget(target), root = resolved.root;
+
+  // ── 门禁：预览属于第 6 步，必须先过第 3 步风格确认。
+  // 顺便把"预览真的开过"记进状态——第 6 步的导出门只认这条记录。
+  assertGate(root, 'style', 'editor.mjs 打开工作区预览（第 6 步）');
+  recordPreview(root, { size: options.size || null, fps: options.fps ?? null, progress: !!options.progressURL });
   const projectOptions = { ...options, page: resolved.rel };
   const project = await discoverEditorProject(root, projectOptions), token = randomBytes(24).toString('hex');
   project.canExport = options.allowExport !== false; project.readOnly = !!options.readOnly;
@@ -40,7 +48,8 @@ export async function createEditorServer(target, options = {}) {
   let session = initialSession(project), restoreWarning = '';
   try { const saved = readJSON(stateFile); if (saved) session = validateSession(saved, project); }
   catch { restoreWarning = '源音频或规格已变化，旧编辑未自动套用。已载入原始状态；旧记录仍在磁盘。'; }
-  let active = null; const jobs = new Map(), waves = new Map();
+  //声明几个全局容器，用来跟踪当前任务、所有渲染任务、音频波形、临时放行令牌。
+  let active = null; const jobs = new Map(), waves = new Map(), clickTokens = new Map();
   const quality = options.quality || {};
   const limits = { workers: [1, 16], subframes: [1, 16], shutter: [0, 1], dpr: [1, 4], grain: [0, 100], crf: [0, 51] };
   for (const [key, value] of Object.entries(quality)) if (!limits[key] || !Number.isFinite(value) || value < limits[key][0] || value > limits[key][1] || (['workers', 'subframes'].includes(key) && !Number.isInteger(value))) throw new Error(`Invalid quality option ${key}`);
@@ -49,6 +58,23 @@ export async function createEditorServer(target, options = {}) {
     const progress = j.phase === '渲染画面' && frameProgress ? 0.15 + 0.73 * Number(frameProgress[1]) / Number(frameProgress[2]) : j.progress;
     return { id: j.id, type: j.type, status: j.status, phase: j.phase, progress, log: j.log, result: j.result, error: j.error };
   };
+
+  const sweepClickTokens = () => {
+    const now = Date.now();
+    for (const [k, v] of clickTokens) if (now - v.issuedAt > CLICK_TOKEN_TTL_MS) clickTokens.delete(k);
+  };
+  const serveIndex = (res, ct) => {
+    try {
+      const html = fs.readFileSync(path.join(ASSETS, 'index.html'), 'utf8');
+      const tag = `<script>window.__EXPORT_CLICK_TOKEN__=${JSON.stringify(ct)};</script>`;
+      const injected = html.replace('</head>', `${tag}\n</head>`);
+      if (injected === html) throw new Error('预览页缺少 </head>，无法注入导出凭证');
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(injected);
+    } catch (e) { clickTokens.delete(ct); send(res, 500, { error: `预览页注入失败：${e.message}` }); }
+  };
+
+
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost'), pathname = decodeURIComponent(url.pathname);
@@ -64,28 +90,60 @@ export async function createEditorServer(target, options = {}) {
         if (project.readOnly && !isOriginalSession(next, project)) { send(res, 403, { error: '阶段预览只读，最终预览时可调整声音' }); return; }
         session = next; atomicJSON(stateFile, session); send(res, 200, { session }); return;
       }
-      if (pathname === '/api/jobs' && req.method === 'POST') {
-        if (active?.status === 'running') { send(res, 409, { error: '已有任务正在进行', job: publicJob(active) }); return; }
-        const data = await body(req);
-        if (!['mix', 'export'].includes(data.type)) throw new Error('Unknown task type');
-        if (data.type === 'export' && !project.canExport) { send(res, 403, { error: '制作中的阶段预览不能导出，请等待最终预览' }); return; }
-        const snapshot = validateSession(data.session, project);
-        if (project.readOnly && !isOriginalSession(snapshot, project)) { send(res, 403, { error: '阶段预览只读' }); return; }
-        const current = await discoverEditorProject(root, projectOptions);
-        if (current.sourceSignature !== project.sourceSignature) throw new Error('源音频已变化，请重启工作区后重试');
-        const job = newJob(data.type); active = job; jobs.set(job.id, job);
-        while (jobs.size > 20) jobs.delete(jobs.keys().next().value);
-        send(res, 202, publicJob(job));
-        (async () => {
-          try {
-            job.result = data.type === 'mix' ? await prepareEditorAudio(root, project, snapshot, job) : await exportEditor(root, project, snapshot, job, quality);
-            if (job.result.file) job.result.url = '/project/' + job.result.file.split('/').map(encodeURIComponent).join('/');
-            job.result.key = sessionKey(snapshot, project);
-            job.status = job.cancelled ? 'cancelled' : 'complete'; job.progress = 1; job.phase = job.cancelled ? '已取消' : '完成';
-          } catch (error) { job.error = error.message; job.status = job.cancelled ? 'cancelled' : 'failed'; job.phase = job.cancelled ? '已取消' : '失败'; }
-        })(); return;
+  if (pathname === '/api/jobs' && req.method === 'POST') {
+    if (active?.status === 'running') { send(res, 409, { error: '已有任务正在进行', job: publicJob(active) }); return; }
+    const data = await body(req);
+    if (!['mix', 'export'].includes(data.type)) throw new Error('Unknown task type');
+
+    if (data.type === 'export') {
+      if (!project.canExport) { send(res, 403, { error: '制作中的阶段预览不能导出，请等待最终预览' }); return; }
+      const snapshot = validateSession(data.session, project);
+      if (project.readOnly && !isOriginalSession(snapshot, project)) { send(res, 403, { error: '阶段预览只读，最终预览时可调整声音' }); return; }
+      const current = await discoverEditorProject(root, projectOptions);
+      if (current.sourceSignature !== project.sourceSignature) throw new Error('源音频已变化，请重启工作区后重试');
+
+      const ct = data.clickToken;
+      const rec = ct ? clickTokens.get(ct) : null;
+      if (!rec || rec.used || Date.now() - rec.issuedAt > CLICK_TOKEN_TTL_MS) {
+        send(res, 403, { error: '缺少或无效的 UI 点击凭证：导出必须由预览界面点击触发，不能由后台接口直接调用。' }); return;
       }
-      if (pathname.startsWith('/api/jobs/')) {
+      rec.used = true;
+
+      const pre = exportRealArtifacts(root);
+      if (!pre.ok) { send(res, 403, { error: `导出前置检查未通过：${pre.why}` }); return; }
+
+      const job = newJob('export'); active = job; jobs.set(job.id, job);
+      try { confirmExportUI(root, { clickToken: ct, jobId: job.id }); clickTokens.delete(ct); }
+      catch (e) { active = null; jobs.delete(job.id); send(res, 403, { error: `导出确认写入失败：${e.message}` }); return; }
+      while (jobs.size > 20) jobs.delete(jobs.keys().next().value);
+      send(res, 202, publicJob(job));
+      (async () => {
+        try {
+          job.result = await exportEditor(root, project, snapshot, job, quality);
+          if (job.result.file) job.result.url = '/project/' + job.result.file.split('/').map(encodeURIComponent).join('/');
+          job.result.key = sessionKey(snapshot, project);
+          job.status = job.cancelled ? 'cancelled' : 'complete'; job.progress = 1; job.phase = job.cancelled ? '已取消' : '完成';
+        } catch (error) { job.error = error.message; job.status = job.cancelled ? 'cancelled' : 'failed'; job.phase = job.cancelled ? '已取消' : '失败'; }
+      })(); return;
+    }
+
+  const snapshot = validateSession(data.session, project);
+  if (project.readOnly && !isOriginalSession(snapshot, project)) { send(res, 403, { error: '阶段预览只读，最终预览时可调整声音' }); return; }
+  const current = await discoverEditorProject(root, projectOptions);
+  if (current.sourceSignature !== project.sourceSignature) throw new Error('源音频已变化，请重启工作区后重试');
+  const job = newJob(data.type); active = job; jobs.set(job.id, job);
+  while (jobs.size > 20) jobs.delete(jobs.keys().next().value);
+  send(res, 202, publicJob(job));
+  (async () => {
+    try {
+      job.result = data.type === 'mix' ? await prepareEditorAudio(root, project, snapshot, job) : await exportEditor(root, project, snapshot, job, quality);
+      if (job.result.file) job.result.url = '/project/' + job.result.file.split('/').map(encodeURIComponent).join('/');
+      job.result.key = sessionKey(snapshot, project);
+      job.status = job.cancelled ? 'cancelled' : 'complete'; job.progress = 1; job.phase = job.cancelled ? '已取消' : '完成';
+    } catch (error) { job.error = error.message; job.status = job.cancelled ? 'cancelled' : 'failed'; job.phase = job.cancelled ? '已取消' : '失败'; }
+  })(); return;
+}
+     if (pathname.startsWith('/api/jobs/')) {
         const id = pathname.split('/')[3], job = jobs.get(id);
         if (!job) { send(res, 404, { error: 'Task not found' }); return; }
         if (req.method === 'POST' && pathname.endsWith('/cancel')) { job.cancelled = true; stopProcess(job.child); send(res, 200, publicJob(job)); return; }
@@ -98,7 +156,14 @@ export async function createEditorServer(target, options = {}) {
         send(res, 200, await waves.get(track.id)); return;
       }
       if (['GET', 'HEAD'].includes(req.method)) {
-        if (pathname === '/' || pathname === '/editor') { serveFile(req, res, path.join(ASSETS, 'index.html')); return; }
+        if (pathname === '/' || pathname === '/editor') {
+          sweepClickTokens();
+          const ct = randomBytes(16).toString('hex');
+          clickTokens.set(ct, { issuedAt: Date.now(), used: false });
+          serveIndex(res, ct);
+          return;
+        }
+
         if (pathname.startsWith('/__showreel-editor/')) { serveFile(req, res, localFile(ASSETS, pathname.slice('/__showreel-editor/'.length))); return; }
         if (pathname.startsWith('/project/')) { serveFile(req, res, localFile(root, pathname.slice(9))); return; }
         // Preserve root-relative imports/assets used by existing scenes. The

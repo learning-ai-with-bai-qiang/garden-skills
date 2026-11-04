@@ -1,5 +1,14 @@
 # Motion Showreel Skill
 
+> **⚠️ Project Note (Forked Version v0.4.0)**
+> This project is a fork based on the original `motion-showreel` by ConardLi. The original version was primarily designed for macOS/Linux and overseas LLMs. This version is deeply adapted for **Windows** and **domestic (Chinese) LLMs**, introducing a **code-level hard gate system**.
+> 
+> **Key Enhancements:**
+> 1. **Cross-Platform Node Native**: Rewritten shell-dependent scripts to `.mjs`, completely solving the inability to run on Windows.
+> 2. **Hard Gates against Step-Skipping**: Introduced the `gate.mjs` state machine, strictly locking the three gates: requirement confirmation, style frame confirmation, and export confirmation. Models attempting to skip steps will be directly blocked.
+> 3. **Interaction Optimization**: Added a dual-mode guide (One-sentence fast track / Detailed questionnaire), enabling non-technical users to generate videos with one click.
+> 4. **UI Anti-Forgery Export**: Fixed the bug where UI export failed in the preview area, and added a one-time Token to prevent background API forgery.
+
 **Code-rendered motion videos, from logo stings to chapter-based films up to 20 minutes, with independent music/SFX sources, supplied narration or TTS, and editable source.**
 
 [中文文档](./README.zh-CN.md) · [Back to collection root](../../README.md)
@@ -220,3 +229,14 @@ node scripts/build-long.mjs <slug>/chapters.json       # persistent chapter rebu
 ```
 
 Tools ship with their own regression tests: `cd scripts && npm test`.
+
+## 📅 Changelog
+
+### v0.4.0 (Current Version)
+- **Added**: `gate.mjs` core gate code and `.showreel-state.json` state machine.
+- **Added**: `guided-mode.md` dual-mode guided interaction.
+- **Optimized**: Drastically slimmed down `SKILL.md`, removing redundant docs to support progressive loading.
+- **Fixed**: Bug where UI export was mistakenly blocked on Windows in `editor.mjs`.
+- **Optimized**: Upgraded version in `manifest.json` and improved cross-platform dependencies.
+
+*(Note: For the historical changelog of the original v0.3.0, please refer to the original repository)*

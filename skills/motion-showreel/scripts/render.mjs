@@ -33,6 +33,7 @@ import path from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 import { loadChromium, launch, serve, resolveTarget, openPage, warnSoftwareGL, parseSize, args, die } from './lib/browser.mjs';
 import { textHook } from './lib/text-hook.mjs';
+import { assertGate } from './lib/gate.mjs';
 
 // Anything that must be undone on failure or interruption (ffmpeg children, temp dirs, output lock).
 const cleanups = [];
@@ -44,6 +45,24 @@ process.on('unhandledRejection', e => fail(`render failed: ${String(e?.message |
 
 const { pos, opt } = args(process.argv.slice(2));
 const target = resolveTarget(pos[0]);
+
+// ── 门禁（机器强制；规则见 references/gates.md）
+// 同一条命令在流程的不同阶段做不同的事，所以要分别卡不同的门：
+//   静帧/方向 → 第 3 步之前必须已有 brief（第 1、2 步过门）
+//   自检/文字/海报 → 属于第 4–6 步，必须先过风格确认
+//   全片渲染 → 只能在用户说了"可以导出"之后
+const GATE = opt.still || opt.range || opt.directions ? 'brief'
+  : (opt.determinism || opt['text-check'] || opt.poster) ? 'style'
+  : 'export';
+const GATE_ACTION = opt.still ? 'render --still（第 3 步：渲风格静帧）'
+  : opt.directions ? 'render --directions（第 3 步：渲风格方向）'
+  : opt.range ? 'render --range（第 3 步：渲时间轴抽样帧）'
+  : opt.determinism ? 'render --determinism（确定性自检）'
+  : opt['text-check'] ? 'render --text-check（文字框景检查）'
+  : opt.poster ? 'render --poster（导出海报帧）'
+  : 'render 全片渲染（第 7 步：出最终 MP4）';
+assertGate(target.root, GATE, GATE_ACTION);
+
 const { w: W, h: H } = parseSize(opt.size);
 const FPS = +(opt.fps || 30);
 const DPR = +(opt.dpr || 1);

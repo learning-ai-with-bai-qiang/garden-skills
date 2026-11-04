@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { markEnvOk } from './lib/gate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROJ = process.argv[2] || '';
@@ -54,4 +55,16 @@ if (!ok) console.warn('! could not download Chromium; render.mjs will fall back 
 // 5. check-env
 const args = [join(HERE, 'check-env.mjs')];
 if (PROJ) args.push(PROJ);
-run('node', args);
+const envOk = run('node', args, { allowFail: true });
+
+// 6. 第 0 步门：只有全绿才写标记，后面所有门都以它为前提
+if (envOk) {
+  markEnvOk({ proj: PROJ || null });
+  console.log('\n✓ 第 0 步已记录：env 门通过（7 天内有效）。');
+  console.log('  下一步：第 1 步需求确认 —— 读 references/guided-mode.md，向用户提问，拿到确认后：');
+  console.log('  node scripts/gate.mjs init <proj>  然后  node scripts/gate.mjs confirm <proj> requirements --quote "<用户原话>"');
+} else {
+  console.error('\n✗ 环境检查没有全绿，第 0 步门未通过。');
+  console.error('  在修好之前，scaffold / render / audio / editor / build 全部会被门禁拒绝。');
+  process.exit(1);
+}
