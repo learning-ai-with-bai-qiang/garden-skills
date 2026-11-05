@@ -245,4 +245,10 @@ Tools ship with their own regression tests: `cd scripts && npm test`.
 - **Fixed**: Bug where UI export was mistakenly blocked on Windows in `editor.mjs`.
 - **Optimized**: Upgraded version in `manifest.json` and improved cross-platform dependencies.
 
+**Post-release fixes (2026-11-05, version unchanged)**
+- **Fixed**: env gate 7-day cache loophole — every gate now re-probes `ffmpeg` / `ffprobe` on the spot, and missing tools block the pipeline immediately.
+- **Fixed**: the step-0 marker now carries a checksum and an environment summary; editing any field invalidates it, and a failed or interrupted check deletes the stale marker, closing both forgery and leftover-marker holes.
+- **Fixed**: headless browser launch failures now emit `[missing] headless browser` and fail step 0 instead of being silently skipped or surfacing only an English error.
+- **Docs**: `SKILL.md` now spells out how to guide users when Node / ffmpeg is missing, that there are five gates (three human approvals + two machine-evidence checks), and the known `npm test` failures; `references/gates.md` synced; stale `sh setup.sh` hints replaced with `node scripts/setup.mjs`.
+
 *(Note: For the historical changelog of the original v0.3.0, please refer to the original repository)*

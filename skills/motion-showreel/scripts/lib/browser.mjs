@@ -21,7 +21,7 @@ export async function loadChromium(projectDir) {
   for (const name of ['playwright', 'playwright-core']) {
     try { const c = pick(await import(name)); if (c) return c; } catch {}
   }
-  die('Playwright is not installed. Run:  sh <skill>/scripts/setup.sh   (or: npm i -D playwright && npx playwright install chromium)');
+  die('Playwright is not installed. Run: node scripts/setup.mjs   (or: npm i -D playwright && npx playwright install chromium)');
 }
 
 // macOS: force Metal, otherwise new headless shells may fall back to SwiftShader (≈6× slower WebGL).
@@ -146,4 +146,6 @@ export function args(argv) {
   return { pos, opt };
 }
 
-export function die(msg) { console.error(msg); process.exit(1); }
+let softDie = false;
+export function setSoftDie(on = true) { softDie = on; }
+export function die(msg) { if (softDie) throw new Error(msg); console.error(msg); process.exit(1); }

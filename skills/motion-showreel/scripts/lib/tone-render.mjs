@@ -17,7 +17,7 @@ function findTone(projectDir) {
     const f = path.join(base, 'node_modules', 'tone', 'build', 'Tone.js');
     if (fs.existsSync(f)) return f;
   }
-  die('Tone.js is not installed. Run: sh <skill>/scripts/setup.sh   (or: cd <skill>/scripts && npm install)');
+  die('Tone.js is not installed. Run: node scripts/setup.mjs   (or: cd <skill>/scripts && npm install)');
 }
 
 const RUNNER = `<!doctype html><meta charset="utf-8"><script src="/__msr/tone/Tone.js"></script>

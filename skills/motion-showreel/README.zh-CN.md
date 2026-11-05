@@ -245,4 +245,10 @@ node scripts/build-long.mjs <slug>/chapters.json       # 长片按章构建，�
 - **优化**：修复 `editor.mjs` 在 Windows 下 UI 点击导出被误拦截的 Bug。
 - **优化**：`manifest.json` 版本号升级，完善跨平台依赖。
 
+**后续修复（2026-11-05，版本号保持不变）**
+- **修复**：env 门「7 天缓存」漏洞 —— 每次开门都当场复检 `ffmpeg` / `ffprobe`，缺依赖立即拒绝推进。
+- **修复**：第 0 步凭证加入校验位与环境摘要，手工改动任一字段即作废；检查失败或中途中断会删除旧凭证，杜绝伪造通行证与残留放行。
+- **修复**：无头浏览器启动失败时统一输出 `[missing] headless browser` 并让第 0 步红灯，不再静默跳过或只给英文报错。
+- **文档**：`SKILL.md` 补齐「缺 Node / ffmpeg 时如何引导用户安装」「一共五道门（三道人确认 + 两道机器证据）」「`npm test` 已知红灯说明」；`references/gates.md` 同步；旧 `sh setup.sh` 提示统一改为 `node scripts/setup.mjs`。
+
 *(注：原版 v0.3.0 的历史更新记录请查阅原始仓库)*

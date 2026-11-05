@@ -11,8 +11,9 @@ description: 用代码制作图形、文字或界面动画视频，输出 MP4 �
 
 ## 铁律（先读这一段，它决定你能不能往下走）
 
-这个技能的流程被**代码强制**了。第 1、3、6 步是"必须由人来点头"的门，门禁状态记录在
-`<项目>/.showreel-state.json`，由 `scripts/gate.mjs` 独占写入。
+这个技能的流程被**代码强制**了，一共五道门：第 1、3、6 步要人来点头（需求 / 风格 / 导出），
+第 0 步（env，证据是 `scripts/.env-ok.json`）和第 2 步（brief）由机器查证据，不用人点头。
+第 1 步之后的状态记录在 `<项目>/.showreel-state.json`，由 `scripts/gate.mjs` 独占写入。
 
 - **门禁不是建议。** 任何推进管线的脚本（`scaffold` / `render` / `audio build` / `editor` / `build` / `inspect qa`）
   执行前都会自检门禁，缺证据就 **exit 2 直接拒绝**，并打印"下一步必须做什么"。
@@ -28,15 +29,27 @@ description: 用代码制作图形、文字或界面动画视频，输出 MP4 �
 
 ## 第 0 步：环境检查
 
-- **动作**：`node scripts/setup.mjs`
-- **系统动作**：全绿后自动写入 `scripts/.env-ok.json`，这一步就是 **env 门**（7 天有效）。
-- **红线**：env 门没开，`scaffold` / `render` / `audio build` / `editor` / `build` 全部会被拒绝。
-  环境没全绿就去修环境，不要试图绕过。
+- **动作**：第一次使用（或换环境）时跑 `node scripts/setup.mjs`；全绿后自动写 `scripts/.env-ok.json`，即 env 门。
+  凭证 7 天内免于重跑，但**每次开门都会当场复检 ffmpeg / ffprobe**，且凭证带校验位、改动即作废；
+  环境一变就要求重跑 `node scripts/setup.mjs`。
+- **依赖**：Node 18+、ffmpeg + ffprobe（须在 `PATH`）。Playwright / Chromium 由脚本自动装，不用用户管。
+- **缺了就引导用户装，不要替用户装**：停下来，把 `[missing]` 那行（自带安装命令）原样转给用户，
+  说清缺什么、装完**重开终端**、回来重跑 `node scripts/setup.mjs`；**等用户装完再继续**，
+  期间不建项目、不写代码、不提前收集需求（含让用户选模式、问片名 / 时长 / 风格）、不调用 `gate.mjs confirm`。`[missing]` 是诊断不是命令；禁止 Agent 自己下载便携版、解压、改 PATH、
+  执行安装命令，也禁止把临时 PATH 塞进自己进程让 `setup.mjs`「复检通过」——那不算用户装好。
+  若 `node` 命令本身就跑不起来（`command not found`），此时**不会有任何报错输出**，
+  直接让用户去 https://nodejs.org 装 Node 18+。其余缺失以 `check-env.mjs` 的 `[missing]` 行为准
+  （那行自带安装命令）；`[warn]` 是能力降级、`[optional]` 不阻断。
+- **红线**：env 门没开，所有带门禁的推进脚本一律 `exit 2`；不得手工编造 `.env-ok.json`，
+  不得凭临时环境取得全绿记录，不得跳过本步。
+- **改过脚本后**：跑 `cd scripts` 然后 `npm test`（自带回归测试），确认门禁没被改坏。
+  已知：测试用临时项目、没有门禁状态文件，其中调用 `scaffold` / `render` / `editor` 的用例会被门禁 `exit 2` 拒绝（报「第 1 步 · 需求确认」）；这是测试与门禁不同步，不是环境损坏或改动写错。
 
 ## 第 1 步：需求确认（强制门禁 · 人来点头）
 
 - **动作**：读取 `references/guided-mode.md`，按双模式（一句话出片 / 精细问卷）用大白话引导用户，
   收集主题、时长、横竖屏、声音、标题、口播。
+  **时长**：最长 20 分钟（1200 秒），以用户确认的时长为准。短片仍适合 5–60 秒，不把长片做成连续二十分钟的高密度卡点。超过 2 分钟，读 `references/long-form.md`，按章节规划、制作和审片。用户指定时长与口播实际长度或内容量冲突时，停下来确认调整方案，不擅自截断、加速口播或改变片长。
 - **门禁命令**：拿到用户明确回复后
   ```
   node scripts/gate.mjs init <项目>

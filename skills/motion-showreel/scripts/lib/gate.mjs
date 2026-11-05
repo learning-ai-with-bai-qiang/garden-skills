@@ -19,6 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 export const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const STATE_FILE = '.showreel-state.json';
@@ -138,15 +139,60 @@ export function appendLog(dir, entry) {
 
 /* ---------- 各项检查 ---------- */
 
+/* env 门的轻量复核：7 天凭证只证明「历史上查过一次」，不能证明「现在还能用」。
+   每次断言确认 ffmpeg / ffprobe 可执行即可；浏览器、WebGL、滤镜清单等重检查
+   仍由 setup.mjs 负责。同一个进程内只探测一次，不重复起子进程。 */
+let coreProbeCache = null;
+function probeCoreDeps() {
+  if (coreProbeCache) return coreProbeCache;
+  const firstLine = bin => {
+    try {
+      const out = execFileSync(bin, ['-version'], {
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 3000,
+      }).toString().split(/\r?\n/)[0].trim();
+      return out || null;
+    } catch { return null; }
+  };
+  const ffmpeg = firstLine('ffmpeg');
+  const ffprobe = firstLine('ffprobe');
+  coreProbeCache = { ok: !!(ffmpeg && ffprobe), ffmpeg, ffprobe };
+  return coreProbeCache;
+}
+
 export function envStatus() {
   if (!fs.existsSync(ENV_FILE)) {
     return { ok: false, why: '没有找到第 0 步的环境检查记录（scripts/.env-ok.json）' };
   }
   let m;
   try { m = JSON.parse(fs.readFileSync(ENV_FILE, 'utf8')); } catch { return { ok: false, why: '环境检查记录损坏' }; }
+
+  // 校验位：排除手工编辑；旧版无校验位的记录一律要求重跑 setup。
+  const { hash, ...rest } = m;
+  if (!hash || hash !== digest(rest)) {
+    return { ok: false, why: '环境检查记录校验失败（无校验位或已被手工改动），请重跑 node scripts/setup.mjs' };
+  }
+
   const age = Date.now() - (m.ts || 0);
   if (!(age >= 0 && age < ENV_MAX_AGE_MS)) {
     return { ok: false, why: `环境检查记录已过期（${Math.floor(age / 86400000)} 天前）` };
+  }
+
+  // 凭证有效 ≠ 环境仍可用：PATH 改动、ffmpeg 卸载、凭临时 PATH 取得的全绿记录都在这里被挡下。
+  const probe = probeCoreDeps();
+  if (!probe.ok) {
+    return {
+      ok: false,
+      why: 'ffmpeg / ffprobe 当前不可用（环境可能已变化），请重跑 node scripts/setup.mjs',
+      probe,
+    };
+  }
+
+  // 检查摘要：换了 ffmpeg、换了平台、或 Node 主版本变了，旧的「全绿」结论不再适用。
+  const s = m.summary;
+  if (!s || s.ffmpeg !== probe.ffmpeg || s.ffprobe !== probe.ffprobe ||
+      s.platform !== process.platform || s.nodeMajor !== process.versions.node.split('.')[0]) {
+    return { ok: false, why: '环境与第 0 步检查时不同，请重跑 node scripts/setup.mjs', probe };
   }
   return { ok: true, marker: m };
 }
@@ -318,8 +364,29 @@ export function assertGate(dir, gate, action) {
 /* ---------- 写入门 ---------- */
 
 export function markEnvOk(extra = {}) {
+  // 摘要由当前真实的 ffmpeg / ffprobe 生成，不接受调用方传入；
+  // 没有这两个命令时拒绝写标记，避免「绕过 setup 直接签一张全绿」。
+  const probe = probeCoreDeps();
+  if (!probe.ok) {
+    console.error('\n✗ 无法写入第 0 步记录：ffmpeg / ffprobe 当前不可用。');
+    process.exit(1);
+  }
+  const marker = {
+    ...extra,                       // proj 等附加信息；核心字段在后面覆盖，不能伪造
+    ts: Date.now(),
+    node: process.version,
+    platform: process.platform,
+    summary: {
+      ffmpeg: probe.ffmpeg,
+      ffprobe: probe.ffprobe,
+      nodeMajor: process.versions.node.split('.')[0],
+      platform: process.platform,
+    },
+  };
+  marker.hash = digest(marker);
   fs.mkdirSync(path.dirname(ENV_FILE), { recursive: true });
-  fs.writeFileSync(ENV_FILE, JSON.stringify({ ts: Date.now(), node: process.version, platform: process.platform, ...extra }, null, 2) + '\n', 'utf8');
+  fs.writeFileSync(ENV_FILE, JSON.stringify(marker, null, 2) + '\n', 'utf8');
+  return marker;
 }
 
 // editor.mjs 真的起了服务才能调用它——这是"预览门"的实物证据。
