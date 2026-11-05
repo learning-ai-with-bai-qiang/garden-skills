@@ -6,7 +6,7 @@
 > **Key Enhancements:**
 > 1. **Cross-Platform Node Native**: Rewritten shell-dependent scripts to `.mjs`, completely solving the inability to run on Windows.
 > 2. **Hard Gates against Step-Skipping**: Introduced the `gate.mjs` state machine, strictly locking the three gates: requirement confirmation, style frame confirmation, and export confirmation. Models attempting to skip steps will be directly blocked.
-> 3. **Interaction Optimization**: Added a dual-mode guide (One-sentence fast track / Detailed questionnaire), enabling non-technical users to generate videos with one click.
+> 3. **Interaction Optimization**: Added a dual-mode guide (Hands-off mode / Detailed questionnaire): the user gives one sentence and no detailed requirements, leaving creative decisions to the model; only the requirements questionnaire is skipped — style frames and export still need user approval.
 > 4. **UI Anti-Forgery Export**: Fixed the bug where UI export failed in the preview area, and added a one-time Token to prevent background API forgery.
 
 **Code-rendered motion videos, from logo stings to chapter-based films up to 20 minutes, with independent music/SFX sources, supplied narration or TTS, and editable source.**
@@ -182,7 +182,7 @@ skills/motion-showreel/
 │   ├── recipes.md           Ready-to-use snippets (masked text, morph chains, particle typography, seamless loops, WebGL post-processing, Canvas pseudo-3D...)
 │   ├── brief-template.md    Structured prompt template for each film
 │   ├── review.md            Technical checks, review sheet, independent review, FAQs, delivery checklist
-│   ├── guided-mode.md       ⭐️ [NEW] Dual-mode guide (One-sentence fast track / Detailed questionnaire)
+│   ├── guided-mode.md       ⭐️ [NEW] Dual-mode guide (Hands-off mode / Detailed questionnaire)
 │   └── gates.md             ⭐️ [NEW] Gate protocol and anti-bypass rules
 ├── scripts/
 │   ├── setup.mjs            (Replaces setup.sh)
@@ -250,5 +250,6 @@ Tools ship with their own regression tests: `cd scripts && npm test`.
 - **Fixed**: the step-0 marker now carries a checksum and an environment summary; editing any field invalidates it, and a failed or interrupted check deletes the stale marker, closing both forgery and leftover-marker holes.
 - **Fixed**: headless browser launch failures now emit `[missing] headless browser` and fail step 0 instead of being silently skipped or surfacing only an English error.
 - **Docs**: `SKILL.md` now spells out how to guide users when Node / ffmpeg is missing, that there are five gates (three human approvals + two machine-evidence checks), and the known `npm test` failures; `references/gates.md` synced; stale `sh setup.sh` hints replaced with `node scripts/setup.mjs`.
+- **Docs**: renamed mode 1 to "Hands-off mode" and rewrote its opening description: the user supplies one sentence, the model takes creative liberties, and style-frame / export approvals still apply.
 
 *(Note: For the historical changelog of the original v0.3.0, please refer to the original repository)*

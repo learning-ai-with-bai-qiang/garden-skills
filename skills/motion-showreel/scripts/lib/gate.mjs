@@ -6,7 +6,7 @@
 //
 // 门的顺序（前面的没过，后面的一律不许过）：
 //   env          第 0 步：setup.mjs 真的跑过且全绿
-//   requirements 第 1 步：用户确认了需求摘要（或有"一句话出片"豁免）
+//   requirements 第 1 步：用户确认了需求摘要（或有"放手模式"豁免）
 //   brief        第 2 步：brief.md 真的存在且填过（不是空模板）
 //   style        第 3 步：用户确认了风格帧，且静帧文件真的在原盘上
 //   export       第 6 步：工作区预览真的开过，用户说了可以导出
@@ -294,7 +294,7 @@ const NEXT_STEP = {
   requirements:
     '先读 references/guided-mode.md，按双模式向用户提问；拿到用户明确回复后：\n' +
     '    node scripts/gate.mjs confirm <proj> requirements --quote "用户原话"\n' +
-    '    （模式1 一句话出片：加 --mode 1，视为用户显式豁免第 1 步）',
+    '    （模式1 放手模式：加 --mode 1，视为用户显式豁免第 1 步）',
   brief:
     '先读 references/brief-template.md 写 <proj>/brief.md，然后：\n' +
     '    node scripts/gate.mjs check-brief <proj>',

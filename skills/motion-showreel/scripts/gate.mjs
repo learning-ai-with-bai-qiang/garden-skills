@@ -117,7 +117,7 @@ try {
       const next = confirmGate(dir, gate, { quote, mode: opt('mode'), frames: opt('frames') });
       console.log(`✓ 门已通过：${gate}`);
       console.log(`  记录的用户原话：${quote}`);
-      if (gate === 'requirements' && next.gates.requirements.mode) console.log(`  模式：${next.gates.requirements.mode}${next.gates.requirements.mode === 1 ? '（一句话出片，豁免第 1 步）' : ''}`);
+      if (gate === 'requirements' && next.gates.requirements.mode) console.log(`  模式：${next.gates.requirements.mode}${next.gates.requirements.mode === 1 ? '（放手模式，豁免第 1 步）' : ''}`);
       console.log('  下一步用 node scripts/gate.mjs status <proj> 查看。');
       break;
     }
